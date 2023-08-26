@@ -29,23 +29,12 @@ commands:
           name: Destroying environment
           when: on_fail
           command: |
-            aws cloudformation delete-stack \
-              --stack-name "udapeople-frontend-<< parameters.workflow_id >>"
-            aws cloudformation delete-stack \
-              --stack-name "udapeople-backend-<< parameters.workflow_id >>"
-            echo "Checking if S3 bucket is empty..."
-            object_count=$(aws s3 ls "s3://udapeople-<< parameters.workflow_id >>" | wc -l)
-            if [[ $object_count -gt 0 ]]; then
-              read -p "S3 bucket is not empty. Do you want to delete its contents? (y/n): " response
-              if [[ $response == "y" ]]; then
-                aws s3 rm "s3://udapeople-<< parameters.workflow_id >>" --recursive
-                echo "S3 bucket contents deleted."
-              else
-                echo "S3 bucket contents were not deleted."
-              fi
-            else
-              echo "S3 bucket is already empty."
-            fi
+            echo "Destroying environment: <<parameters.workflow_id>>"
+            aws s3 rm s3://udapeople-<<parameters.workflow_id>> --recursive
+            aws s3 wait bucket-empty s3://udapeople-<<parameters.workflow_id>>
+            aws cloudformation delete-stack --stack-name "udapeople-backend-<<parameters.workflow_id>>"
+            aws cloudformation delete-stack --stack-name "udapeople-frontend-<<parameters.workflow_id>>"
+
 
   revert-migrations:
     parameters:
@@ -56,7 +45,7 @@ commands:
           name: Reverting migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl "https://kvdb.io/LHFkzdfqGQiT5AocazCCLL//migration_<<parameters.workflow_id>>" -H "X-Api-Key: ${THISDB_API_KEY}")
+            SUCCESS=$(curl "https://kvdb.io/8X9Rovk3quXuGkVm81MvbT/migration_<<parameters.workflow_id>>" -H "X-Api-Key: ${THISDB_API_KEY}")
             if (($SUCCESS == 1)); then
               cd backend
               npm install
@@ -286,7 +275,6 @@ jobs:
       - destroy-environment:
           workflow_id: '${CIRCLE_WORKFLOW_ID:0:5}'
 
-
   deploy-frontend:
     docker:
       - image: cimg/node:13.14.0
@@ -396,7 +384,7 @@ jobs:
       - run:
           name: Smoke test for front end
           command: |
-            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:5}.s3-website-us-west-2.amazonaws.com"             
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:5}.s3-website-us-east-1.amazonaws.com"             
             echo ${URL} 
             if curl -s ${URL} | grep "Welcome"
             then
