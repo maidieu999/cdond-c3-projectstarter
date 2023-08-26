@@ -224,8 +224,8 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-      # - destroy-environment:
-      #     workflow_id: '${CIRCLE_WORKFLOW_ID:0:5}'        
+      - destroy-environment:
+          workflow_id: '${CIRCLE_WORKFLOW_ID:0:5}'        
 
   configure-infrastructure:
     docker:
@@ -250,8 +250,8 @@ jobs:
             cat ~/project/.circleci/ansible/inventory.txt
             export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml
-      # - destroy-environment:
-      #     workflow_id: '${CIRCLE_WORKFLOW_ID:0:5}'            
+      - destroy-environment:
+          workflow_id: '${CIRCLE_WORKFLOW_ID:0:5}'            
 
   run-migrations:
     docker:
