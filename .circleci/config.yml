@@ -88,18 +88,16 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: 
-          - build-frontend
+          keys: [frontend-build]
       - run:
-          name: "build the front-end"
+          name: Build front-end
           command: |
             cd frontend
             npm install
             npm run build
       - save_cache:
-          key: build-frontend
-          paths:
-            - frontend/node_modules
+          paths: [frontend/node_modules]
+          key: frontend-build
 
   build-backend:
     docker:
@@ -107,23 +105,16 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys:
-            - build-backend
+          keys: [backend-build]
       - run:
           name: Back-end build
           command: |
             cd backend
             npm install
             npm run build
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/backend/dist
-            - project/backend/node_modules
       - save_cache:
-          key: build-backend
-          paths:
-            - backend/node_modules
+          paths: [backend/node_modules]
+          key: backend-build
 
   test-frontend:
     docker:
@@ -131,25 +122,23 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys:
-            - build-frontend
+          keys: [frontend-test]
       - run:
-          name: Testing frontend
+          name: Run frontend test
           command: |
             cd frontend
             npm install
             npm run test
-
+            
   test-backend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
       - restore_cache:
-          keys:
-            - build-backend
+          keys: [backend-test]
       - run:
-          name: Testing backend
+          name: Run backend test
           command: |
             cd backend
             npm install
@@ -161,10 +150,9 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys:
-            - build-frontend
+          keys: [scan frontend]
       - run:
-          name: Scanning frontend
+          name: Run frontend scan
           command: |
             cd frontend
             npm install
@@ -176,10 +164,9 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys:
-            - build-frontend
+          keys: [scan backend]
       - run:
-          name: Scanning backend
+          name: Run backend scan
           command: |
             cd backend
             npm install
@@ -199,27 +186,27 @@ jobs:
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
-              --stack-name udapeople-backend-${CIRCLE_WORKFLOW_ID:0:5} \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5} \
-              --tags project=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:5} \
-              --region us-east-1  
+              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
+              --tags project=udapeople
       - run:
           name: Ensure front-end infrastructure exist
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
+              --tags project=udapeople \
               --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:5} \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5} \
-              --tags project=udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:5} \
-              --region us-east-1  
+              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:5}  
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            aws cloudformation describe-stacks \
-              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:5}" \
-              --query "Stacks[0].Outputs[0].OutputValue" \
-              --output text >> .circleci/ansible/inventory.txt \
-              --region us-east-1
+            cat .circleci/ansible/inventory.txt
+            aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:5} \
+              --output text >> ~/project/.circleci/ansible/inventory.txt
+            cd .circleci/ansible
+            cat inventory.txt
       - persist_to_workspace:
           root: ~/
           paths:
@@ -229,27 +216,33 @@ jobs:
 
   configure-infrastructure:
     docker:
-      - image: python:3.7-alpine3.11
+      - image: cimg/base:stable
     steps:
       - checkout
       - add_ssh_keys:
           fingerprints: ["75:1f:da:13:42:ac:93:97:35:61:83:58:f8:4c:7b:c8"]
       - attach_workspace:
           at: ~/
-      - run:
-          name: Install dependencies
-          command: |
-            apk add curl
-            apk add --upgrade bash
-            apk add --update ansible
-            apk add openssh-client
-            pip3 install awscli
+
+      - install_ansible
+      - install_awscli
+      - install_nodejs
+
+      - attach_workspace:
+          at: ~/
+
       - run:
           name: Configure server
           command: |
-            cat ~/project/.circleci/ansible/inventory.txt
-            export ANSIBLE_HOST_KEY_CHECKING=False
-            ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt configure-server.yml
+            cat inventory.txt
+
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/backend
+
       - destroy-environment:
           workflow_id: '${CIRCLE_WORKFLOW_ID:0:5}'            
 
