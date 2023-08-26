@@ -322,7 +322,7 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["75:1f:da:13:42:ac:93:97:35:61:83:58:f8:4c:7b:c8"]
+          fingerprints: ["dc:7b:ae:81:11:a0:8d:0c:37:b3:57:a3:50:85:61:84"]
       - attach_workspace: 
           at: ~/
       - restore_cache:
@@ -458,10 +458,10 @@ workflows:
           requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
-      # - deploy-frontend:
-      #     requires: [run-migrations]
-      # - deploy-backend:
-      #     requires: [run-migrations]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
       # - smoke-test-backend:
       #     requires: [deploy-backend]
       # - smoke-test-frontend:
