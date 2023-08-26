@@ -1,0 +1,17 @@
+- name: "Update and Upgrade packages"
+  become: true
+  apt:
+    upgrade: yes
+    update_cache: yes
+
+- name: "Install Dependencies"
+  become: true
+  apt:
+    name: ["nodejs", "tar", "gzip", "npm"]
+    state: latest
+    update_cache: yes
+
+- name: "Install PM2 Globally"
+  npm: 
+    name: pm2
+    global: yes
