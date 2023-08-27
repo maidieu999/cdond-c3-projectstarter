@@ -346,12 +346,13 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update curl
-            pip install awscli
+            pip install npm awscli
       - run:
           name: Backend smoke test
           command: |
               BACKEND_IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
               API_URL="http://${BACKEND_IP}:3030"
+              echo "api url: ${API_URL}"
               if curl -s ${API_URL}/api/status | grep "ok"
               then
                 exit 0
