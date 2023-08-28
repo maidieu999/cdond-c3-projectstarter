@@ -1,6 +1,16 @@
 version: 2.1
 
 commands:
+  notify:
+    steps:
+      - run:
+          name: Send Slack Notification
+          when: on_fail
+          command: |
+            curl -kX POST -H 'Content-type: application/json' \
+            --data '{"text":"Build failed: '$CIRCLE_BUILD_URL'"}' \
+            $SLACK_WEBHOOK_URL
+
   dependencies:
     steps:
       - run:
@@ -99,6 +109,7 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
+      - notify
 
   build-backend:
     docker:
@@ -116,6 +127,7 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
+      - notify
 
   test-frontend:
     docker:
