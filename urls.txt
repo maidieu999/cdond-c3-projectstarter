@@ -1,2 +1,3 @@
 repo: https://github.com/maidieu999/cdond-c3-projectstarter
-cloudfront: http://d26wpoy3jcm20k.cloudfront.net/#/employees
+cloudfront: http://djdwsz0pdvny5.cloudfront.net/#/employees
+s3: http://udapeople-15ab0.s3-website-us-east-1.amazonaws.com/#/employees
